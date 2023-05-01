@@ -1,0 +1,9 @@
+[submodule "thirdparty/LR3M-Method"]
+	path = thirdparty/LR3M-Method
+	url = https://github.com/tonghelen/LR3M-Method.git
+[submodule "thirdparty/URetinex-Net"]
+	path = thirdparty/URetinex-Net
+	url = git@github.com:AndersonYong/URetinex-Net.git
+[submodule "thirdparty/SaliencyELD"]
+	path = thirdparty/SaliencyELD
+	url = git@github.com:gylee1103/SaliencyELD.git
