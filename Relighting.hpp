@@ -25,24 +25,24 @@ public:
 	void setReflectancePostFilterIteration(const int iteration);
 
 	void setDiffusion(Diffusion d, const float ss = 100, const float sr = 20, const float directrix = 5, const bool is_jbf = false);
-	void setColorSpace(int r, int g, int b);
-	void setColorSpace(int r, int g, int b, float lab_l, float lab_ab);
-	void setIntensity(double k_param, double l_param);
-	void setCenterOfLights(int x, int y);
+	void setColorSpace(const int r, const int g, const int b);
+	void setColorSpace(const int r, const int g, const int b, const float lab_l, const float lab_ab);
+	void setLastIntensity(const float k_param, const float l_param);
+	void setVanishingPointForDirectionalDiffusion(const int x, const int y);
 
-	void filtering();
-	void show(std::string wname, const bool isShowExtra);
+	void run();
+	void show(std::string wname, const int showSwitch);
 
 private:
-	cv::Mat input;
+	cv::Mat input8U;
 	cv::Mat gray32;
 	cv::Mat reflectance;
-	cv::Mat lightsource;
+	cv::Mat lightSource;
 	cv::Mat output;
-	cv::Mat light;
+	cv::Mat lightDiffused;
 	cv::Mat base;
 	std::vector<cv::Point> using_points;
-	cv::Point center;
+	cv::Point vanishingPoint;
 
 	float ssr_sigma = 90.f;
 	int reflectancePostFilterIteration = 3;
@@ -71,12 +71,12 @@ private:
 
 	void blueNoiseSampling(const cv::Mat& reflectance, std::vector<cv::Point>& using_point);
 	std::vector<cv::Point> getDitheringPoints(std::vector<cv::Point> points, cv::Point first_point, float min, const float gamma);
-	std::vector<cv::Point> deletePoints(std::vector<cv::Point> points, const cv::Point center, const const float range);
+	std::vector<cv::Point> deletePoints(std::vector<cv::Point> points, const cv::Point vanishingPoint, const float range);
 	std::vector<cv::Point> getPointsInRange(std::vector<cv::Point> points, std::vector<cv::Point> selected_points, float range, int num);
 
-	void gaussianBlurFromPoint(cv::Mat& dst);
-	void mappingLightSource(const std::vector<cv::Point>& src_point, cv::Mat& dst);
-	void diffuse(cv::Mat& lightsource, cv::Mat& dst);
+	void gaussianBlurFromPoint(const std::vector<cv::Point>& using_points, cv::Mat& dst);
+	void convertPointsToImage(const std::vector<cv::Point>& src_point, cv::Mat& dst);
+	void diffusing(const cv::Mat& lightSource, const std::vector<cv::Point>& src_point, cv::Mat& dst);
 	void multiplyLab(const cv::Mat& src, cv::Mat& dst);
-	void multiplyRGB(const cv::Mat& src, const cv::Mat& light, cv::Mat& dst);//Eq. (14)
+	void multiplyRGB(const cv::Mat& src, const cv::Mat& lightDiffused, cv::Mat& dst);//Eq. (14)
 };

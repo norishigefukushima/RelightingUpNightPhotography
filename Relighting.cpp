@@ -118,7 +118,7 @@ void createImportanceMap_TexturenessPoints(cv::Mat& src, cv::Mat& dest, int& sam
 		const float inv_m = 1.f / m;//1/m
 		const float offset = inv_m * 0.5f;
 		const int n = src.rows * src.cols;
-		const int nt = n * (1.f - sampling_ratio);
+		const int nt = int(n * (1.f - sampling_ratio));
 		const float sx_max = 1.f + FLT_EPSILON;
 		const float sx_min = 1.f - FLT_EPSILON;
 		//cout << n<<","<<nt<<"," <<sampling_ratio<< endl;
@@ -205,16 +205,16 @@ void Relighting::setReflectancePostFilterIteration(const int iteration)
 	this->reflectancePostFilterIteration = iteration;
 }
 
-void Relighting::setDiffusion(Diffusion d, const float ss, const float sr, const float directrix, const bool is_jbf)
+void Relighting::setDiffusion(Diffusion d, const float ss, const float sr, const float directrix, const bool is_jbf_directional_difusion)
 {
 	this->diffusion = d;
 	this->diffuse_ss = ss;
 	this->diffuse_sr = sr;
 	this->directrix = directrix;
-	this->is_jbf = is_jbf;
+	this->is_jbf = is_jbf_directional_difusion;
 }
 
-void Relighting::setColorSpace(int r, int g, int b)
+void Relighting::setColorSpace(const int r, const int g, const int b)
 {
 	this->is_lab = false;
 	this->red = r;
@@ -222,7 +222,7 @@ void Relighting::setColorSpace(int r, int g, int b)
 	this->blue = b;
 }
 
-void Relighting::setColorSpace(int r, int g, int b, float lab_l, float lab_ab)
+void Relighting::setColorSpace(const int r, const int g, const int b, const float lab_l, const float lab_ab)
 {
 	this->is_lab = true;
 	this->red = r;
@@ -232,43 +232,25 @@ void Relighting::setColorSpace(int r, int g, int b, float lab_l, float lab_ab)
 	this->lab_ab = lab_ab;
 }
 
-void Relighting::setIntensity(double k_param, double l_param)
+void Relighting::setLastIntensity(const float k_param, const float l_param)
 {
 	this->k_param = k_param;
 	this->l_param = l_param;
 }
 
-void Relighting::setCenterOfLights(int x, int y)
+void Relighting::setVanishingPointForDirectionalDiffusion(const int x, const int y)
 {
-	this->center = { x, y };
+	this->vanishingPoint = Point(x, y);
 }
 #pragma endregion
 
-void Relighting::show(string wname, bool isShowExtra)
-{
-	if (isShowExtra)
-	{
-		Mat tmp, tmp2, show;
-		cvtColor(reflectance, tmp, COLOR_GRAY2BGR);
-		tmp.convertTo(tmp2, CV_8U, 255);
-		cv::vconcat(output, tmp2, show);
-		light.convertTo(tmp2, CV_8U, 255);
-		cv::vconcat(show, tmp2, show);
-		imshow(wname, show);
-	}
-	else
-	{
-		imshow(wname, output);
-	}
-}
-
 Relighting::Relighting(const Mat& src, const int lightsource_num)
 {
-	this->input = src;
-	Mat input32; input.convertTo(input32, CV_32F);
+	this->input8U = src;
+	Mat input32; input8U.convertTo(input32, CV_32F);
 	cvtColor(input32, this->gray32, COLOR_BGR2GRAY);
-	this->output = input.clone();
-	this->center = Point(this->input.cols / 2, 0);
+	this->output = input8U.clone();
+	this->vanishingPoint = Point(this->input8U.cols / 2, 0);
 	this->lightsource_num = lightsource_num;
 	//unsigned int now = (unsigned int)time(0);
 	//srand(now);
@@ -308,9 +290,9 @@ void Relighting::blueNoiseSampling(const Mat& reflectance, vector<Point>& using_
 	createImportanceMap_TexturenessPoints((Mat)reflectance, dithering_saliency_map, tmp, sampling_ratio, ditheringMethod, points);
 	if (points.size() < 1) exit(0);
 
-	Point first_point = points[rng.uniform(0, points.size())];
-	int min_r = (int)powf(input.size().area() / lightsource_num, 0.5);
-	using_points = getDitheringPoints(points, first_point, min_r, 2);
+	Point first_point = points[rng.uniform(0, (int)points.size())];
+	int min_r = (int)powf(float(input8U.size().area() / lightsource_num), 0.5);
+	using_points = getDitheringPoints(points, first_point, float(min_r), 2.f);
 }
 
 vector<Point> Relighting::getDitheringPoints(vector<Point> points, Point first_point, float min, const float gamma) {
@@ -335,7 +317,7 @@ vector<Point> Relighting::getDitheringPoints(vector<Point> points, Point first_p
 		{
 			if (next_points.size() != 0)
 			{
-				sample_num = next_points.size();
+				sample_num = (int)next_points.size();
 				int max_num = -1;
 				temp = 0;
 				for (int j = 0; j < sample_num; j++)
@@ -343,7 +325,7 @@ vector<Point> Relighting::getDitheringPoints(vector<Point> points, Point first_p
 					temp_points2 = deletePoints(can_select_points, next_points[j], min);
 					if (max_num < temp_points2.size()) // 9, temp_points2: 
 					{
-						max_num = temp_points2.size();
+						max_num = (int)temp_points2.size();
 						temp = j;
 					}
 				}
@@ -351,7 +333,7 @@ vector<Point> Relighting::getDitheringPoints(vector<Point> points, Point first_p
 			}
 			else if (can_select_points.size() != 0) // 7
 			{
-				sample_num = can_select_points.size();
+				sample_num = (int)can_select_points.size();
 				temp = rand() % sample_num;
 				dst[i] = can_select_points[temp];
 			}
@@ -404,7 +386,7 @@ vector<Point> Relighting::getPointsInRange(vector<Point> points, vector<Point> s
 	{
 		for (int i = 0; i < points.size(); i++)
 		{
-			float d = (points[i].x - selected_points[n].x) * (points[i].x - selected_points[n].x) + (points[i].y - selected_points[n].y) * (points[i].y - selected_points[n].y);
+			float d = float((points[i].x - selected_points[n].x) * (points[i].x - selected_points[n].x) + (points[i].y - selected_points[n].y) * (points[i].y - selected_points[n].y));
 			if (d < R)
 			{
 				vector_dst[n].push_back(points[i]);
@@ -431,72 +413,81 @@ vector<Point> Relighting::getPointsInRange(vector<Point> points, vector<Point> s
 	return dst;
 }
 
-void  Relighting::diffuse(Mat& lightsource, Mat& dst)
+void Relighting::convertPointsToImage(const std::vector<Point>& src_point, Mat& dest32FC3)
 {
-	const int r = ceil(3 * diffuse_ss);
+	dest32FC3.create(input8U.size(), CV_32FC3);
+	dest32FC3.setTo(0);
+	for (int i = 0; i < src_point.size(); i++)
+	{
+		dest32FC3.at<Vec3f>(src_point[i]) = Vec3f((float)this->blue, (float)this->green, (float)this->red);
+	}
+}
+
+void Relighting::diffusing(const cv::Mat& lightSource32FC3, const std::vector<Point>& sourcePoints, Mat& dest32FC3)
+{
+	const int r = (int)ceil(3.f * diffuse_ss);
 
 	if (diffusion == Diffusion::GAUSS)
 	{
-		vector<Mat> split_l; split(lightsource, split_l);
+		vector<Mat> split_l; split(lightSource32FC3, split_l);
 		int order = 3;
 #pragma omp parallel for
 		for (int i = 0; i < split_l.size(); i++)
 		{
 			//GaussianBlur(split_l[i], split_l[i], Size(0, 0), diffuse_ss);
-			cp::SpatialFilterSlidingDCT5_AVX_32F gfilter(input.size(), diffuse_ss, order);
+			cp::SpatialFilterSlidingDCT5_AVX_32F gfilter(input8U.size(), diffuse_ss, order);
 			gfilter.filter(split_l[i], split_l[i], diffuse_ss, order);
 		}
-
-		merge(split_l, dst);
+		merge(split_l, dest32FC3);
 	}
 	else if (diffusion == Diffusion::GAUSS_D)
 	{
-		gaussianBlurFromPoint(dst);
+		gaussianBlurFromPoint(sourcePoints, dest32FC3);
 	}
 	else if (diffusion == Diffusion::JBF)
 	{
-		cp::jointBilateralFilter(lightsource, gray32, dst, 2 * r + 1, diffuse_sr, diffuse_ss);
+		cp::jointBilateralFilter(lightSource32FC3, gray32, dest32FC3, 2 * r + 1, diffuse_sr, diffuse_ss);
 	}
 	else if (diffusion == Diffusion::AMF)
 	{
-		Mat lightsource_; GaussianBlur(lightsource, lightsource_, Size(0, 0), 5);
+		Mat lightsource_; GaussianBlur(lightSource32FC3, lightsource_, Size(0, 0), 5);
 		Ptr<ximgproc::AdaptiveManifoldFilter> amf = ximgproc::AdaptiveManifoldFilter::create();
 		//amf->setSigmaS((float)diffuse_ss / 100);
 		//amf->setSigmaR((float)diffuse_sr / 100);
-		amf->filter(lightsource_, dst, gray32 / 255);
+		amf->filter(lightsource_, dest32FC3, gray32 / 255);
 	}
 	else if (diffusion == Diffusion::DTF)
 	{
-		Mat lightsource_; GaussianBlur(lightsource, lightsource_, Size(0, 0), 10);
-		cp::domainTransformFilter(lightsource_, gray32, dst, diffuse_sr, diffuse_ss, 1, cp::DTF_L1, cp::DTF_NC);
+		Mat lightsource_;
+		GaussianBlur(lightSource32FC3, lightsource_, Size(0, 0), 10);
+		cp::domainTransformFilter(lightsource_, gray32, dest32FC3, diffuse_sr, diffuse_ss, 1, cp::DTF_L1, cp::DTF_NC);
 	}
 	else
 	{
 		exit(EXIT_FAILURE);
 	}
+
+	//normalization
+	Vec3f p = dest32FC3.at<Vec3f>(sourcePoints[0]);
+	vector<Mat> split_l; split(dest32FC3, split_l);
+	if (p[0] != 0.f)multiply(split_l[0], blue / p[0] / 255.f, split_l[0]);
+	if (p[1] != 0.f)multiply(split_l[1], green / p[1] / 255.f, split_l[1]);
+	if (p[2] != 0.f)multiply(split_l[2], red / p[2] / 255.f, split_l[2]);
+	merge(split_l, dest32FC3);
 }
 
-void Relighting::mappingLightSource(const std::vector<Point>& src_point, Mat& dst)
+void Relighting::gaussianBlurFromPoint(const vector<Point>& using_points, Mat& dst)
 {
-	dst = Mat::zeros(input.size(), CV_32FC3);
-	for (int i = 0; i < using_points.size(); i++)
-	{
-		dst.at<Vec3f>(src_point[i]) = Vec3f((float)this->blue, (float)this->green, (float)this->red);
-	}
-}
-
-void Relighting::gaussianBlurFromPoint(Mat& dst)
-{
-	Mat input32; input.convertTo(input32, CV_32F);
+	Mat input32; input8U.convertTo(input32, CV_32F);
 	vector<Mat> split_dst(using_points.size());
-	int x = center.x;
-	int y = center.y;
+	int x = vanishingPoint.x;
+	int y = vanishingPoint.y;
 #pragma omp parallel for
 	for (int p = 0; p < using_points.size(); p++)
 	{
-		split_dst[p] = Mat::zeros(input.size(), CV_32FC3);
+		split_dst[p] = Mat::zeros(input8U.size(), CV_32FC3);
 		Point fp = using_points[p];
-		float ip = y - fp.y;
+		float ip = float(y - fp.y);
 		float denom = powf((float)((y - fp.y) * (y - fp.y) + (x - fp.x) * (x - fp.x)), 0.5);
 		float cosine = ip / denom;
 		float angle = acosf(cosine);
@@ -506,7 +497,7 @@ void Relighting::gaussianBlurFromPoint(Mat& dst)
 		}
 
 		const Vec3f sfp = input32.ptr<Vec3f>(fp.y)[fp.x];
-		const Vec3f color(blue, green, red);
+		const Vec3f color = Vec3f(float(blue), float(green), float(red));
 		Vec3f denom_vec(0, 0, 0);
 		for (int j = 0; j < input32.rows; j++)
 		{
@@ -514,8 +505,8 @@ void Relighting::gaussianBlurFromPoint(Mat& dst)
 			Vec3f* dp = split_dst[p].ptr<Vec3f>(j);
 			for (int i = 0; i < input32.cols; i++)
 			{
-				float px = i - fp.x;
-				float py = j - fp.y;
+				float px = float(i - fp.x);
+				float py = float(j - fp.y);
 				float i2 = px * cos(angle) - py * sin(angle);
 				float j2 = px * sin(angle) + py * cos(angle) + directrix;
 				float fx = (i2 * i2) / (4.f * directrix);
@@ -539,8 +530,8 @@ void Relighting::gaussianBlurFromPoint(Mat& dst)
 			Vec3f* dp = split_dst[p].ptr<Vec3f>(j);
 			for (int i = 0; i < input32.cols; i++)
 			{
-				float px = i - fp.x;
-				float py = j - fp.y;
+				float px = float(i - fp.x);
+				float py = float(j - fp.y);
 				float i2 = px * cos(angle) - py * sin(angle);
 				float j2 = px * sin(angle) + py * cos(angle) + directrix;
 				float fx = (i2 * i2) / (4 * directrix);
@@ -566,34 +557,33 @@ void Relighting::gaussianBlurFromPoint(Mat& dst)
 	}
 }
 
-void Relighting::multiplyLab(const Mat& src, Mat& dst)
+void Relighting::multiplyLab(const Mat& src8U, Mat& dst8U)
 {
-	cvtColor(src, dst, COLOR_BGR2Lab);
-	const int size = src.size().area();
-	uchar* s = dst.ptr<uchar>();
-	for (int i = 0; i < size; i += 3)
+	cvtColor(src8U, dst8U, COLOR_BGR2Lab);
+	const int size = src8U.size().area();
+	uchar* s = dst8U.ptr<uchar>();
+	for (int i = 0; i < size; i++)
 	{
 		s[3 * i + 0] = saturate_cast<uchar>(s[3 * i + 0] * lab_l);
 		s[3 * i + 1] = saturate_cast<uchar>((s[3 * i + 1] - 128.f) * lab_ab + 128.f);
 		s[3 * i + 2] = saturate_cast<uchar>((s[3 * i + 2] - 128.f) * lab_ab + 128.f);
 	}
-	cvtColor(dst, dst, COLOR_Lab2BGR);
+	cvtColor(dst8U, dst8U, COLOR_Lab2BGR);
 }
 
-void Relighting::multiplyRGB(const Mat& src, const Mat& light, Mat& dst)
+void Relighting::multiplyRGB(const Mat& src, const Mat& lightDiffused, Mat& dst)
 {
 	const uchar* s = src.ptr<uchar>();
-	const float* lmap = light.ptr<float>();
+	const float* lmap = lightDiffused.ptr<float>();
 	uchar* d = dst.ptr<uchar>();
 	const int size = src.size().area() * src.channels();
-	const float intens_32 = (float)k_param;
 	for (int i = 0; i < size; i++)
 	{
 		d[i] = saturate_cast<uchar>((l_param + k_param * lmap[i]) * s[i]);
 	}
 }
 
-void Relighting::filtering()
+void Relighting::run()
 {
 	{
 #ifdef TIMER_TEST
@@ -630,13 +620,13 @@ void Relighting::filtering()
 #ifdef TIMER_TEST
 		cp::Timer t("light souce");
 #endif
-		mappingLightSource(using_points, lightsource);//Eq. (7)
+		convertPointsToImage(using_points, lightSource);//Eq. (7)
 	}
 	{
 #ifdef TIMER_TEST
 		cp::Timer t("diffuse");
 #endif
-		diffuse(lightsource, light);
+		diffusing(lightSource, using_points, lightDiffused);
 	}
 
 	//Eq. (14) or (15)
@@ -646,12 +636,42 @@ void Relighting::filtering()
 #endif
 		if (is_lab)
 		{
-			multiplyLab(input, base);
-			multiplyRGB(base, light, output);
+			multiplyLab(input8U, base);
+			multiplyRGB(base, lightDiffused, output);
 		}
 		else
 		{
-			multiplyRGB(input, light, output);
+			multiplyRGB(input8U, lightDiffused, output);
 		}
+	}
+}
+
+void Relighting::show(string wname, const int showSwitch)
+{
+	if (showSwitch == 1)
+	{
+		Mat outC3, out8u, show;
+		cvtColor(reflectance, outC3, COLOR_GRAY2BGR);
+		outC3.convertTo(out8u, CV_8U, 255);
+		cv::vconcat(output, out8u, show);
+		lightDiffused.convertTo(out8u, CV_8U, 255);
+		if (diffusion == Diffusion::GAUSS_D) cp::drawGrid(out8u, vanishingPoint, COLOR_RED);
+		cv::vconcat(show, out8u, show);
+		imshow(wname, show);
+	}
+	else if (showSwitch == 2)
+	{
+		Mat outC3, out8u, show;
+		cvtColor(reflectance, outC3, COLOR_GRAY2BGR);
+		outC3.convertTo(out8u, CV_8U, 255);
+		if (diffusion == Diffusion::GAUSS_D) cp::drawGrid(out8u, vanishingPoint, COLOR_RED);
+		cv::hconcat(output, out8u, show);
+		lightDiffused.convertTo(out8u, CV_8U, 255);
+		cv::hconcat(show, out8u, show);
+		imshow(wname, show);
+	}
+	else
+	{
+		imshow(wname, output);
 	}
 }
