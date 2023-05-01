@@ -1,6 +1,7 @@
 # Relighting Night Photography
  
-[Web](https://norishigefukushima.github.io/RelightingUpNightPhotography/)
+* [Code](https://github.com/norishigefukushima/RelightingUpNightPhotography)
+* [Web](https://norishigefukushima.github.io/RelightingUpNightPhotography/)
 
 ![out](out.webp)
 
