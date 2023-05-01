@@ -23,7 +23,7 @@
 ![abstfig](abstfig.jpg)
 # Requirement
 
-* [OpenCV with Qt build](https://opencv.org/)
+* [OpenCV build with Qt GUI option](https://opencv.org/)
 * [OpenCP](https://github.com/norishigefukushima/OpenCP)
 * Visual Studio 2022
 
