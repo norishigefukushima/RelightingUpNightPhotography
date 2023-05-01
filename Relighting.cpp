@@ -184,7 +184,7 @@ void createImportanceMap_TexturenessPoints(cv::Mat& src, cv::Mat& dest, int& sam
 	//cout << (sample_num * 100.f / (src.rows*src.cols)) << endl;
 }
 
-#pragma region setter
+#pragma region setter_getter
 void Relighting::setLightSourceNum(const int num)
 {
 	this->lightsource_num = num;
@@ -242,6 +242,12 @@ void Relighting::setVanishingPointForDirectionalDiffusion(const int x, const int
 {
 	this->vanishingPoint = Point(x, y);
 }
+
+Mat Relighting::getOutputImage()
+{
+	return output;
+}
+
 #pragma endregion
 
 Relighting::Relighting(const Mat& src, const int lightsource_num)

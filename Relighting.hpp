@@ -32,7 +32,7 @@ public:
 
 	void run();
 	void show(std::string wname, const int showSwitch);
-
+	cv::Mat getOutputImage();
 private:
 	cv::Mat input8U;
 	cv::Mat gray32;

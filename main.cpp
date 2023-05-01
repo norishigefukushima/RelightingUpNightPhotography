@@ -90,6 +90,8 @@ int main()
 	uc.setIsFourceRetTrueFirstTime(false);
 	string dm = "";
 	int lightSource = -1;
+
+	vector<Mat> outputImages;
 	while (key != 'q')
 	{
 #pragma region updateCheck
@@ -195,6 +197,25 @@ int main()
 		ci("(l:%1.3f + k:%1.3f*F) * src", l_param, k_param);
 		ci("time (Mean)  : %3.3f ms, (Median): %3.3f ms", timer.getLapTimeMean(), timer.getLapTimeMedian());
 		ci.show();
+
+		if (key == 'p')
+		{
+			outputImages.push_back(relighting.getOutputImage().clone());
+			cout << "push: " << outputImages.size() << endl;
+		}
+		if (key == 's')
+		{
+			vector<int> params;
+			params.push_back(IMWRITE_WEBP_METHOD);
+			params.push_back(4);
+			params.push_back(IMWRITE_WEBP_COLORSPACE);
+			params.push_back(0);
+			params.push_back(IMWRITE_WEBP_LOOPCOUNT);
+			params.push_back(0);
+			params.push_back(IMWRITE_WEBP_TIMEMSPERFRAME);
+			params.push_back(1000);
+			cp::imwriteAnimationWebp("out.webp", outputImages, params);
+		}
 #pragma endregion
 	}
 }
