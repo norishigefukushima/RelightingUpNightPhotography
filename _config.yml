@@ -1,6 +1,7 @@
-remote_theme: abhinavs/moonwalk
+remote_theme: supun-io/jekyll-theme-leaf
 
 plugins:
   - jekyll-feed # original
   - jekyll-remote-theme # added
   - github-pages # added
+  - jekyll-sitemap
