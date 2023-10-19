@@ -1,6 +1,7 @@
 # Relighting Night Photography
  
-[Web](https://norishigefukushima.github.io/RelightingUpNightPhotography/)
+* [Code](https://github.com/norishigefukushima/RelightingUpNightPhotography)
+* [Web](https://norishigefukushima.github.io/RelightingUpNightPhotography/)
 
 ![out](out.webp)
 
@@ -23,7 +24,7 @@
 ![abstfig](abstfig.jpg)
 # Requirement
 
-* [OpenCV](https://opencv.org/)
+* [OpenCV build with Qt GUI option](https://opencv.org/)
 * [OpenCP](https://github.com/norishigefukushima/OpenCP)
 * Visual Studio 2022
 
